@@ -12,6 +12,7 @@ public class MonsterScript : MonoBehaviour
 	public float animSpeed = 1.5f;				// a public setting for overall animator animation speed
 	public float lookSmoother = 3f;				// a smoothing setting for camera motion
 	public float moveSpeed = 1;
+	public int attackValue = 10;
 	
 	private Animator anim;							// a reference to the animator on the character
 	private AnimatorStateInfo currentBaseState;			// a reference to the current state of the animator, used for base layer
@@ -28,15 +29,36 @@ public class MonsterScript : MonoBehaviour
 	static int waveState = Animator.StringToHash("Layer2.Wave");
 	static int attackState = Animator.StringToHash("Base Layer.Attack");
 	static int hurtState = Animator.StringToHash("Base Layer.Hurt");
+	static int monsterAttackState = Animator.StringToHash("Base Layer.MonsterAttack");
 
 	GameManager manager;
 	GameObject player;
+	BotControlScript playerScript;
 
 	GameObject movingTarget;
 
-	public float pushBack = 0;
+	private float pushBack = 0;
 
+	public float pushBackValue = 20;
 	public float pushSpeed = 5;
+
+	bool attack = false;
+
+
+	void OnCollisionEnter(Collision collision) {
+
+		if (hp > 0)
+		{
+			if (collision.gameObject == manager.Player)
+			{
+
+				Debug.Log ("hit player");
+				anim.SetBool("MonsterAttack", true);
+				attack = true;
+			}
+		}
+		
+	}
 
 	public void Hurt(int value)
 	{
@@ -51,7 +73,7 @@ public class MonsterScript : MonoBehaviour
 
 		if (hp > 0) 
 		{
-			pushBack = 20;
+			pushBack = pushBackValue;
 		}
 	}
 	
@@ -69,6 +91,8 @@ public class MonsterScript : MonoBehaviour
 		player = manager.Player;
 
 		movingTarget = player;
+
+		playerScript = player.GetComponent<BotControlScript> ();
 	}
 
 	void MoveToTarget()
@@ -116,6 +140,8 @@ public class MonsterScript : MonoBehaviour
 
 	}
 
+	public bool killed = false;
+
 	public void Dying()
 	{
 		anim.SetFloat("Speed", 0);							// set our animator's float parameter 'Speed' equal to the vertical input axis				
@@ -123,10 +149,16 @@ public class MonsterScript : MonoBehaviour
 		if (transform.rotation.eulerAngles.x > 270 || transform.rotation.eulerAngles.x <10) {
 						transform.Rotate (-2, 0, 0);
 			transform.Translate(0,-0.0005f,0);
+
+			if(!killed)
+			{
 				collider.enabled=false;
 				rigidbody.useGravity=false;
 				anim.enabled = false;
 			rigidbody.velocity = Vector3.zero;
+				killed = true;
+				manager.killed();
+			}
 
 				}
 
@@ -136,6 +168,8 @@ public class MonsterScript : MonoBehaviour
 
 		if (vanishTimer < 0) {
 			GameObject.Destroy(gameObject);
+
+
 				}
 	}
 
@@ -174,29 +208,23 @@ public class MonsterScript : MonoBehaviour
 		{
 			anim.SetBool("Attack",true);
 		}
-		
-		if (currentBaseState.nameHash == attackState)
+		*/
+		if (currentBaseState.nameHash == monsterAttackState)
 		{
-			
 			if(!anim.IsInTransition(0))
 			{				
 				// reset the Jump bool so we can jump again, and so that the state does not loop 
-				anim.SetBool("Attack", false);
+				anim.SetBool("MonsterAttack", false);
+
+				if(attack)
+				{
+					attack = false;
+					Vector3 forward = transform.forward;
+					playerScript.Hurt(attackValue,forward);
+				}
 			}
-		}*/
-		
-		
-		// STANDARD JUMPING
-		
-		// if we are currently in a state called Locomotion, then allow Jump input (Space) to set the Jump bool parameter in the Animator to true
-		/*if (currentBaseState.nameHash == locoState)
-		{
-			if(Input.GetButtonDown("Jump"))
-			{
-				anim.SetBool("Jump", true);
-				rigidbody.AddForce(Vector3.up*10);
-			}
-		}*/
+		}
+
 
 		if (hp > 0) {
 						if (currentBaseState.nameHash == hurtState) {
