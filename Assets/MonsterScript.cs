@@ -7,7 +7,8 @@ using System.Collections;
 [RequireComponent(typeof (Rigidbody))]
 public class MonsterScript : MonoBehaviour
 {
-	
+
+	public float hp = 50;
 	public float animSpeed = 1.5f;				// a public setting for overall animator animation speed
 	public float lookSmoother = 3f;				// a smoothing setting for camera motion
 	public float moveSpeed = 1;
@@ -26,12 +27,35 @@ public class MonsterScript : MonoBehaviour
 	static int rollState = Animator.StringToHash("Base Layer.Roll");
 	static int waveState = Animator.StringToHash("Layer2.Wave");
 	static int attackState = Animator.StringToHash("Base Layer.Attack");
+	static int hurtState = Animator.StringToHash("Base Layer.Hurt");
 
 	GameManager manager;
 	GameObject player;
 
 	GameObject movingTarget;
+
+	public float pushBack = 0;
+
+	public float pushSpeed = 5;
+
+	public void Hurt(int value)
+	{
+		if (hp < 0) 
+		{
+			return;
+		}
+
+		hp -= value;
+
+		anim.SetBool("Hurt", true);
+
+		if (hp > 0) 
+		{
+			pushBack = 20;
+		}
+	}
 	
+
 	void Start ()
 	{
 		// initialising reference variables
@@ -63,7 +87,7 @@ public class MonsterScript : MonoBehaviour
 			rotate += 360;
 		
 		
-		Debug.Log ("MyRotate:"+MyRotate + " : "+ "Rotate:"+rotate);
+		//Debug.Log ("MyRotate:"+MyRotate + " : "+ "Rotate:"+rotate);
 		
 		float rotateValue = (MyRotate - rotate);
 		
@@ -76,15 +100,13 @@ public class MonsterScript : MonoBehaviour
 		
 		rotateValue = rotateValue / 10f;
 		
-		Debug.Log ("rotate Value:"+rotateValue);
+		//Debug.Log ("rotate Value:"+rotateValue);
 		
 		if (rotateValue > 1)
 			rotateValue = 1;
 		else if (rotateValue < -1)
 			rotateValue = -1;
-		
-		
-		
+
 		float v = 0.2f;				// setup v variables as our vertical input axis
 		
 		anim.SetFloat("Speed", v*moveSpeed);							// set our animator's float parameter 'Speed' equal to the vertical input axis				
@@ -94,11 +116,51 @@ public class MonsterScript : MonoBehaviour
 
 	}
 
+	public void Dying()
+	{
+		anim.SetFloat("Speed", 0);							// set our animator's float parameter 'Speed' equal to the vertical input axis				
+		anim.SetFloat("Direction", 0); 
+		if (transform.rotation.eulerAngles.x > 270 || transform.rotation.eulerAngles.x <10) {
+						transform.Rotate (-2, 0, 0);
+			transform.Translate(0,-0.0005f,0);
+				collider.enabled=false;
+				rigidbody.useGravity=false;
+				anim.enabled = false;
+			rigidbody.velocity = Vector3.zero;
 
-	
+				}
+
+
+
+		vanishTimer -= Time.deltaTime;
+
+		if (vanishTimer < 0) {
+			GameObject.Destroy(gameObject);
+				}
+	}
+
+	public float vanishTimer = 3;
+
 	void FixedUpdate ()
 	{
-		MoveToTarget();
+
+		if (hp > 0) 
+		{
+			MoveToTarget ();
+		} 
+		else 
+		{
+			Dying();
+			return;
+		}
+
+		if (pushBack > 0) 
+		{
+			pushBack--;
+			transform.position -= transform.forward * pushSpeed * Time.deltaTime;
+		}
+
+
 
 		currentBaseState = anim.GetCurrentAnimatorStateInfo(0);	// set our currentState variable to the current state of the Base Layer (0) of animation
 		
@@ -127,19 +189,27 @@ public class MonsterScript : MonoBehaviour
 		// STANDARD JUMPING
 		
 		// if we are currently in a state called Locomotion, then allow Jump input (Space) to set the Jump bool parameter in the Animator to true
-		if (currentBaseState.nameHash == locoState)
+		/*if (currentBaseState.nameHash == locoState)
 		{
 			if(Input.GetButtonDown("Jump"))
 			{
 				anim.SetBool("Jump", true);
 				rigidbody.AddForce(Vector3.up*10);
 			}
-		}
-		
+		}*/
+
+		if (hp > 0) {
+						if (currentBaseState.nameHash == hurtState) {
+						
+								if (!anim.IsInTransition (0)) {				
+										anim.SetBool ("Hurt", false);
+								}
+						}
+				}
 		
 		
 		// if we are in the jumping state... 
-		else if(currentBaseState.nameHash == jumpState)
+		if(currentBaseState.nameHash == jumpState)
 		{
 			//  ..and not still in transition..
 			if(!anim.IsInTransition(0))

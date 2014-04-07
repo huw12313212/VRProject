@@ -11,6 +11,7 @@ public class BotControlScript : MonoBehaviour
 	public float animSpeed = 1.5f;				// a public setting for overall animator animation speed
 	public float lookSmoother = 3f;				// a smoothing setting for camera motion
 	public float moveSpeed = 1;
+	public GameObject rightHand;
 	
 	private Animator anim;							// a reference to the animator on the character
 	private AnimatorStateInfo currentBaseState;			// a reference to the current state of the animator, used for base layer
@@ -37,15 +38,26 @@ public class BotControlScript : MonoBehaviour
 			anim.SetLayerWeight(1, 1);
 	}
 	
-	
+
+	bool shoot = false;
+
 	void FixedUpdate ()
 	{
 		float h = Input.GetAxis("Horizontal");				// setup h variable as our horizontal input axis
 		float v = Input.GetAxis("Vertical");				// setup v variables as our vertical input axis
 
+		if (v == 0 && h!=0) 
+		{
+			v = 0.2f;
+		}
+
 		anim.SetFloat("Speed", v*moveSpeed);							// set our animator's float parameter 'Speed' equal to the vertical input axis				
 		anim.SetFloat("Direction", h); 						// set our animator's float parameter 'Direction' equal to the horizontal input axis		
 		anim.speed = animSpeed;								// set the speed of our animator to the public variable 'animSpeed'
+
+
+
+
 		currentBaseState = anim.GetCurrentAnimatorStateInfo(0);	// set our currentState variable to the current state of the Base Layer (0) of animation
 		
 		if(anim.layerCount ==2)		
@@ -57,6 +69,7 @@ public class BotControlScript : MonoBehaviour
 		if (attackPressed) 
 		{
 			anim.SetBool("Attack",true);
+			shoot = true;
 		}
 
 		if (currentBaseState.nameHash == attackState)
@@ -65,10 +78,28 @@ public class BotControlScript : MonoBehaviour
 			if(!anim.IsInTransition(0))
 			{				
 				// reset the Jump bool so we can jump again, and so that the state does not loop 
+
+				if(shoot)
+				{
+				GameObject fireBall = GameObject.Instantiate(Resources.Load("FireBall")) as GameObject;
+					shoot = false;
+					fireBall.transform.position = rightHand.transform.position;
+					fireBall.transform.rotation = Quaternion.Euler(new Vector3(0,transform.rotation.eulerAngles.y+180,0));
+					FireBallScript fireBallScript = fireBall.GetComponent<FireBallScript>();
+
+
+					Vector3 shootV = transform.forward;
+					fireBallScript.Velicity = shootV * 8;
+
+				}
+
+
+
+
+
 				anim.SetBool("Attack", false);
 			}
 		}
-
 
 		// STANDARD JUMPING
 		
@@ -78,7 +109,9 @@ public class BotControlScript : MonoBehaviour
 			if(Input.GetButtonDown("Jump"))
 			{
 				anim.SetBool("Jump", true);
-				rigidbody.AddForce(Vector3.up*10);
+				rigidbody.AddForce(Vector3.up*200);
+			
+				rigidbody.velocity = new Vector3(0,100,0);
 			}
 		}
 
@@ -145,17 +178,21 @@ public class BotControlScript : MonoBehaviour
 		// IDLE
 		
 		// check if we are at idle, if so, let us Wave!
+		/*
 		else if (currentBaseState.nameHash == idleState)
 		{
 			if(Input.GetButtonUp("Jump"))
 			{
 				anim.SetBool("Wave", true);
 			}
-		}
+		}*/
+
+
 		// if we enter the waving state, reset the bool to let us wave again in future
+		/*
 		if(layer2CurrentState.nameHash == waveState)
 		{
 			anim.SetBool("Wave", false);
-		}
+		}*/
 	}
 }
