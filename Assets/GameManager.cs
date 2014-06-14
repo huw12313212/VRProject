@@ -40,9 +40,13 @@ public class GameManager : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 
-		WaveLabel.text = "" + Wave;
-		EnemyLabel.text = "" + enemyNumber;
-		KillLabel.text = "" + killNumber;
+		if (WaveLabel != null) 
+		{
+
+						WaveLabel.text = "" + Wave;
+						EnemyLabel.text = "" + enemyNumber;
+						KillLabel.text = "" + killNumber;
+		}
 
 		if (enemyNumber <= 0) 
 		{
